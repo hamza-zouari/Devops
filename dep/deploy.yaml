@@ -1,0 +1,111 @@
+# Front-end Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend-app
+          image: Hamzazouari/front:latest
+          ports:
+            - containerPort: 5554
+      imagePullSecrets:
+        - name: matkoulesh
+---
+# Front-end Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-app
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 5554
+      targetPort: 5554
+      nodePort: 30001
+---
+# Back-end Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend-app
+          image: Hamzazouari/back:latest
+          ports:
+            - containerPort: 5555
+      imagePullSecrets:
+        - name: matkoulesh
+---
+# Back-end Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-app
+spec:
+  type: NodePort
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 5555
+      targetPort: 5555
+      nodePort: 30002
+---
+# MongoDB Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:latest
+          ports:
+            - containerPort: 27017
+---
+# MongoDB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  type: NodePort
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+      nodePort: 30003

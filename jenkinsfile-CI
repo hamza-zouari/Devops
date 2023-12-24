@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+    environment {
+            SCANNER_HOME = tool 'sonar'
+            PROJECT_NAME = 'jenkins'
+            // create credentials of nexus in jenkins (username + password)
+            NEXUS_PASSWORD = credentials('nexus-docker-credentials')
+            
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/hamza-zouari/Devops.git'
+            }
+        }
+        stage('SoanrQube Analysis') {
+            steps {
+                withSonarQubeEnv(installationName: 'sonar', credentialsId: 'sonar')  {
+                    sh '''$SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectKey=$PROJECT_NAME \
+                        -Dsonar.sources=.'''
+                }
+                
+         
+            }
+        }
+        stage('Push to Nexus') {
+                steps {
+                    dir('front') {
+                        sh 'tar -czvf ../front.tar.gz .'
+                        nexusArtifactUploader(
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    nexusUrl: 'nexus:8081',
+                    version: 'v1.0.0',
+                    repository: 'nexus',
+                    groupId: 'com.Hamzazouari',
+                    credentialsId: 'nexus-docker-credentials',
+                    artifacts: [
+                        [artifactId: 'front',
+                        classifier: '',
+                        file: '../front.tar.gz',
+                        type: 'tar.gz']
+                    ]
+                    )
+                    }
+                    dir('back') {
+                        sh 'tar -czvf ../back.tar.gz .'
+                        nexusArtifactUploader(
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    nexusUrl: 'nexus:8081',
+                    version: 'v1.0.0',
+                    repository: 'nexus',
+                    groupId: 'com.Hamzazouari',
+                    credentialsId: 'nexus-docker-credentials',
+                    artifacts: [
+                        [artifactId: 'back',
+                        classifier: '',
+                        file: '../back.tar.gz',
+                        type: 'tar.gz']
+                    ]
+                    )
+                    }
+                }
+            }
+        }
+    }

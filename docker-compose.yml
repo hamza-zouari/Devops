@@ -1,0 +1,24 @@
+version: "3"
+services:
+  jenkins:
+    image: custom-jenkins:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - C:\Users\DELL\Desktop\proj-jenkins\jenkins:/var/jenkins_home
+    group_add:
+      - "docker"
+
+  nexus:
+    image: sonatype/nexus3:3.62.0
+    ports:
+      - 8081:8081
+      - 8082:8082
+    # volumes:
+    #   - ${DATA_DIRECTORY}/nexus:/nexus-data
+
+  sonarqube:
+    image: sonarqube:10.3-community
+    ports:
+      - 9000:9000

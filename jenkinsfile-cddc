@@ -1,0 +1,67 @@
+/* groovylint-disable-next-line CompileStatic */
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_PASSWORD = credentials('docker-credentials')
+       
+    }
+
+    stages {
+        stage('Download Artifact from Nexus') {
+            steps {
+                    sh '''
+                        curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -O "http://nexus:8081/repository/nexus/com/Hamzazouari/front/v1.0.0/front-v1.0.0.tar.gz"
+                    '''
+                    sh '''
+                        curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -O "http://nexus:8081/repository/nexus/com/Hamzazouari/back/v1.0.0/back-v1.0.0.tar.gz"
+                    '''
+                    // unzip the artifacts
+                    sh 'mkdir -p front-v1.0.0'
+                    sh 'mkdir -p back-v1.0.0'
+                    sh 'tar -xzvf front-v1.0.0.tar.gz -C front-v1.0.0'
+                    sh 'tar -xzvf back-v1.0.0.tar.gz -C back-v1.0.0'
+            }
+        }
+        stage('Build Docker Images') {
+            steps {
+                dir("front-v1.0.0") {
+                    sh 'docker build -t Hamzazouari/frontend:v1.0.0 .'
+                }
+                dir("back-v1.0.0") {
+                    sh 'docker build -t Hamzazouari/backend:v1.0.0 .'
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                sh 'echo $DOCKER_PASSWORD | docker login -u Hamzazouari --password-stdin'
+                sh 'docker push Hamzazouari/frontend:v1.0.0'
+                sh 'docker push Hamzazouari/backend:v1.0.0'
+            }
+        }
+
+        stage('Run Docker Compose') {
+            steps {
+                dir('dep') {
+                    sh 'docker-compose -f docker-compose-webapp.yml up -e Version=v1.0.0 -d'
+                }
+            }
+        }
+
+        stage(' cut me some slack ') {
+            steps {
+                slackSend(color: '#FFFF00', message: "***** docker-compose success*****")
+            }
+        }
+        stage('Clean Up') {
+            steps {
+                sh 'rm -rf front-v1.0.0'
+                sh 'rm -rf back-v1.0.0'
+                sh 'rm -rf front-v1.0.0.tar.gz'
+                sh 'rm -rf back-v1.0.0.tar.gz'
+            }
+        }
+    }
+}

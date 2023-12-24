@@ -1,0 +1,14 @@
+version: "3"
+services:
+  front:
+    image: Hamzazouari/frontend:v1.0.0
+    ports:
+      - 5554:5554
+  back:
+    image: Hamzazouari/backend:v1.0.0
+    ports:
+      - 5555:5555
+  mongo:
+    image: mongo:latest
+    ports:
+      - 27017:27017

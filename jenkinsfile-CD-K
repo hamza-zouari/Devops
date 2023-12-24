@@ -1,0 +1,69 @@
+
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_PASSWORD = credentials('docker-credentials')
+       
+    }
+
+    stages {
+        stage('Pulling the artifacts from nexus') {
+            steps {
+                    sh '''
+                        curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -O "http://nexus:8081/repository/nexus/com/Hamzazouari/front/v1.0.0/front-v1.0.0.tar.gz"
+                    '''
+                    sh '''
+                        curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -O "http://nexus:8081/repository/nexus/com/Hamzazouari/back/v1.0.0/back-v1.0.0.tar.gz"
+                    '''
+                 
+                    sh 'mkdir -p front-v1.0.0'
+                    sh 'mkdir -p back-v1.0.0'
+                    sh 'tar -xzvf front-v1.0.0.tar.gz -C front-v1.0.0'
+                    sh 'tar -xzvf back-v1.0.0.tar.gz -C back-v1.0.0'
+            }
+        }
+        stage(' Docker Images') {
+            steps {
+                dir("front-v1.0.0") {
+                    sh 'docker build -t Hamzazouari/frontend:v1.0.0 .'
+                }
+                dir("back-v1.0.0") {
+                    sh 'docker build -t Hamzazouari/backend:v1.0.0 .'
+                }
+            }
+        }
+        stage('Pushing the  Docker Images') {
+            steps {
+                sh 'echo $DOCKER_PASSWORD | docker login -u Hamzazouari --password-stdin'
+                sh 'docker push Hamzazouari/frontend:v1.0.0'
+                sh 'docker push Hamzazouari/backend:v1.0.0'
+            }
+        }
+       
+
+        stage(' to Kubernetes') {
+            steps {
+                
+                dir('dep') {
+                    withKubeConfig([credentialsId: 'kubeconfig']) {
+                        sh 'kubectl apply -f deploy.yaml'
+                    }
+                }
+            }
+        }
+        stage(' Slack Message') {
+            steps {
+                slackSend(color: '#FFFF00', message: "  ***** kubernetes  success *******  ")
+            }
+        }
+        stage('Clean Up') {
+            steps {
+                sh 'rm -rf front-v1.0.0'
+                sh 'rm -rf back-v1.0.0'
+                sh 'rm -rf front-v1.0.0.tar.gz'
+                sh 'rm -rf back-v1.0.0.tar.gz'
+            }
+        }
+    }
+}
